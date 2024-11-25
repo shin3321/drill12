@@ -75,26 +75,17 @@ class Selector(Node):
         for node in self.children:
             node.reset()
 
-
     @Node.show_result
     def run(self):
-        for i, child in enumerate(self.children):
-            print(i, child.value, child.has_condition)
+        for child in self.children:
             if (child.value in (BehaviorTree.UNDEF, BehaviorTree.RUNNING)) or child.has_condition:
                 self.value = child.run()
                 if self.value in (BehaviorTree.RUNNING, BehaviorTree.SUCCESS):
                     return self.value
 
+
         self.value = BehaviorTree.FAIL
         return self.value
-
-
-
-
-
-
-
-
 
 
 class Sequence(Node):
@@ -116,8 +107,6 @@ class Sequence(Node):
             if child.has_condition:
                 self.has_condition = True
 
-
-
     @Node.show_result
     def run(self):
         for child in self.children:
@@ -128,7 +117,6 @@ class Sequence(Node):
 
         self.value = BehaviorTree.SUCCESS
         return self.value
-
 
 
 class Action(Node):
@@ -189,7 +177,6 @@ class Condition(Node):
     def run(self):
         self.value = self.func(*self.args)
         if self.value == BehaviorTree.RUNNING:
-            print("ERROR: condition node cannot return RUNNING")
-            raise ValueError;
+            raise ValueError("Condition node cannot return RUNNING")
 
-        return self.value
+        return BehaviorTree.SUCCESS if self.value else BehaviorTree.FAIL

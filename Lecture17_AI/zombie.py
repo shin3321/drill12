@@ -134,21 +134,32 @@ class Zombie:
         pass
 
     def build_behavior_tree(self):
-        a1 = Action('Set target location', self.set_target_location, 500, 50)
-        a2 = Action('Move to', self.move_to)
-        root = move_to_target_location = Sequence('Move to target location', a1, a2)
+        # 소년과의 거리 조건
+        c1 = Condition('소년이 근처에 있는가?', lambda: self.is_boy_nearby(7))
 
-        a3 = Action('Set random location', self.set_random_location)
-        root = wander = Sequence('Wander', a3, a2)
+        # 공 개수 비교 조건
+        c2 = Condition('좀비의 공이 소년의 공보다 많거나 같은가?', lambda: self.ball_count >= play_mode.boy.ball_count)
+        c3 = Condition('좀비의 공이 소년의 공보다 적은가?', lambda: self.ball_count < play_mode.boy.ball_count)
 
-        c1 = Condition('소년이 근처에 있는가?', self.is_boy_nearby, 7)
-        a4 = Action('소년한테 접근', self.move_to_boy)
-        root = chase_boy = Sequence('소년을 추적', c1, a4)
+        # 행동: 소년으로부터 도망
+        a2 = Action('소년으로부터 도망', lambda: self.move_slightly_to(self.x - (play_mode.boy.x - self.x),
+                                                               self.y - (play_mode.boy.y - self.y)))
+        flee_boy = Sequence('소년으로부터 도망', c3, a2)
 
-        root = chase_or_flee = Selector('추적 또는 배회', chase_boy, wander)
+        # 행동: 소년 추적
+        a1 = Action('소년 추적', self.move_to_boy)
+        chase_boy = Sequence('소년을 추적', c2, a1)
 
-        a5 = Action('순찰 위치 가져오기', self.get_patrol_location)
-        root = patrol = Sequence('순찰', a5, a2)
+        # 소년 반응 행동
+        react_to_boy = Selector('소년 반응 행동', chase_boy, flee_boy)
 
+        # 배회 행동
+        a3 = Action('랜덤 위치 설정', self.set_random_location)
+        wander = Sequence('배회', a3, Action('랜덤 위치로 이동', self.move_to))
+
+        # 행동 트리 최상위
+        root = Selector('최상위 행동',
+                        Sequence('소년 근처 확인', c1, react_to_boy),  # 소년이 근처에 있을 때 반응
+                        wander  # 소년이 멀리 있을 때 배회
+                        )
         self.bt = BehaviorTree(root)
-        pass
